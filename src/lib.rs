@@ -56,6 +56,15 @@ impl<const BITS: u8> TaggedPointer<BITS> {
     pub fn without_tag(&self) -> usize {
         self.ptr ^ self.tag_mask()
     }
+
+    pub fn drop_as<T>(&mut self)
+    where
+        T: TaggedPointerValue<BITS>,
+    {
+        let untagged_ptr = self.without_tag();
+        self.ptr = 0;
+        drop(T::unwrap(untagged_ptr));
+    }
 }
 
 pub trait TaggedPointerValue<const BITS: u8> {
@@ -171,15 +180,15 @@ mod test {
 
     #[test]
     fn test_drop() {
-        let ptr = TaggedPointer::<TEST_BITS>::new::<bool, BOOL_TAG>(true);
-        drop(ptr);
+        let mut ptr = TaggedPointer::<TEST_BITS>::new::<bool, BOOL_TAG>(true);
+        ptr.drop_as::<bool>();
 
-        let ptr = TaggedPointer::<TEST_BITS>::new::<u8, U8_TAG>(42);
-        drop(ptr);
+        let mut ptr = TaggedPointer::<TEST_BITS>::new::<u8, U8_TAG>(42);
+        ptr.drop_as::<u8>();
 
-        let ptr = TaggedPointer::<TEST_BITS>::new::<Box<String>, BOX_STRING_TAG>(Box::new(
+        let mut ptr = TaggedPointer::<TEST_BITS>::new::<Box<String>, BOX_STRING_TAG>(Box::new(
             String::from("foo"),
         ));
-        drop(ptr);
+        ptr.drop_as::<Box<String>>();
     }
 }
