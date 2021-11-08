@@ -1,9 +1,9 @@
 use crate::TaggedPointer;
 
-pub trait TaggedPointerValue<const BITS: u8> {
+pub trait TaggedPointerValue {
     fn as_untagged_ptr(this: Self) -> usize
     where
-        Self: Sized + std::fmt::Debug,
+        Self: Sized,
     {
         let mut untagged_ptr = 0;
         let dst: *mut u8 = &mut untagged_ptr as *mut usize as *mut u8;
@@ -37,7 +37,7 @@ pub trait TaggedPointerValue<const BITS: u8> {
         drop(Self::unwrap(untagged_ptr))
     }
 
-    fn borrow_value<U>(tagged_ptr: &TaggedPointer<BITS>) -> &U
+    fn borrow_value<U, const BITS: u8>(tagged_ptr: &TaggedPointer<BITS>) -> &U
     where
         Self: std::borrow::Borrow<U> + Sized,
     {

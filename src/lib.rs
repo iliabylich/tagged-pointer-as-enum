@@ -11,11 +11,11 @@ pub use tagged_pointer_value::TaggedPointerValue;
 mod test {
     use super::*;
 
-    impl<const BITS: u8> TaggedPointerValue<BITS> for bool {}
+    impl TaggedPointerValue for bool {}
 
-    impl<const BITS: u8> TaggedPointerValue<BITS> for u8 {}
+    impl TaggedPointerValue for u8 {}
 
-    impl<T, const BITS: u8> TaggedPointerValue<BITS> for Box<T> {}
+    impl<T> TaggedPointerValue for Box<T> {}
 
     const TEST_BITS: u8 = 5;
     const BOOL_TAG: usize = 1;

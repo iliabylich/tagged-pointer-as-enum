@@ -9,7 +9,7 @@ impl<const BITS: u8> TaggedPointer<BITS> {
 
     fn new_from_usize<T, const MASK: usize>(value: usize) -> Self
     where
-        T: TaggedPointerValue<BITS>,
+        T: TaggedPointerValue,
     {
         debug_assert!(MASK < (1_usize << BITS));
         let tag_mask = MASK << Self::VALUE_BITS;
@@ -19,7 +19,7 @@ impl<const BITS: u8> TaggedPointer<BITS> {
 
     pub fn new<T, const MASK: usize>(value: T) -> Self
     where
-        T: TaggedPointerValue<BITS> + std::fmt::Debug,
+        T: TaggedPointerValue,
     {
         Self::new_from_usize::<T, MASK>(T::as_untagged_ptr(value))
     }
@@ -30,7 +30,7 @@ impl<const BITS: u8> TaggedPointer<BITS> {
 
     pub fn unwrap<T>(mut self) -> T
     where
-        T: TaggedPointerValue<BITS>,
+        T: TaggedPointerValue,
     {
         let untagged_ptr = self.without_tag();
         self.ptr = 0;
@@ -39,9 +39,9 @@ impl<const BITS: u8> TaggedPointer<BITS> {
 
     pub fn borrow_value<T, U>(&self) -> &U
     where
-        T: TaggedPointerValue<BITS> + std::borrow::Borrow<U>,
+        T: TaggedPointerValue + std::borrow::Borrow<U>,
     {
-        T::borrow_value(self)
+        T::borrow_value::<U, BITS>(self)
     }
 
     pub fn tag(&self) -> usize {
@@ -58,7 +58,7 @@ impl<const BITS: u8> TaggedPointer<BITS> {
 
     pub fn drop_as<T>(&mut self)
     where
-        T: TaggedPointerValue<BITS>,
+        T: TaggedPointerValue,
     {
         let untagged_ptr = self.without_tag();
         self.ptr = 0;
