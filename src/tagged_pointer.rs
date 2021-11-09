@@ -7,25 +7,25 @@ pub struct TaggedPointer<const BITS: u8> {
 impl<const BITS: u8> TaggedPointer<BITS> {
     const VALUE_BITS: u8 = 64 - BITS;
 
-    fn new_from_usize<T>(value: usize, tag: usize) -> Self
+    fn new_from_usize<T, const TAG: usize>(value: usize) -> Self
     where
         T: TaggedPointerValue,
     {
-        debug_assert!(tag < (1_usize << BITS));
-        let tag_mask = tag << Self::VALUE_BITS;
+        debug_assert!(TAG < (1_usize << BITS));
+        let tag_mask = TAG << Self::VALUE_BITS;
         let ptr = value | tag_mask;
         Self { ptr }
     }
 
-    pub fn new<T>(value: T, tag: usize) -> Self
+    pub fn new<T, const TAG: usize>(value: T) -> Self
     where
         T: TaggedPointerValue,
     {
-        Self::new_from_usize::<T>(T::as_untagged_ptr(value), tag)
+        Self::new_from_usize::<T, TAG>(T::as_untagged_ptr(value))
     }
 
-    pub fn is(&self, tag: usize) -> bool {
-        self.tag() == tag
+    pub fn is<const TAG: usize>(&self) -> bool {
+        self.tag() == TAG
     }
 
     pub fn unwrap<T>(mut self) -> T
@@ -86,13 +86,13 @@ impl<const BITS: u8> TaggedPointer<BITS> {
         fmt_result
     }
 
-    pub fn clone_as<T>(&self) -> Self
+    pub fn clone_as<T, const TAG: usize>(&self) -> Self
     where
         T: TaggedPointerValue + Clone,
     {
         let copy = Self { ptr: self.ptr };
         let unwrapped = copy.unwrap::<T>();
-        let clone = Self::new::<T>(unwrapped.clone(), self.tag());
+        let clone = Self::new::<T, TAG>(unwrapped.clone());
         std::mem::forget(unwrapped);
         clone
     }

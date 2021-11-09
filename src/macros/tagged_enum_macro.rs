@@ -22,7 +22,7 @@ macro_rules! tagged_enum {
                 #[allow(non_snake_case)]
                 $vis fn $name(value: $t) -> Self {
                     Self {
-                        pointer: $crate::TaggedPointer::new(value, tags::$name),
+                        pointer: $crate::TaggedPointer::new::<$t, {tags::$name}>(value),
                     }
                 }
             )+
@@ -31,8 +31,8 @@ macro_rules! tagged_enum {
                 self.pointer.tag()
             }
 
-            $vis fn is(&self, tag: usize) -> bool {
-                self.tag() == tag
+            $vis fn is<const TAG: usize>(&self) -> bool {
+                self.pointer.is::<TAG>()
             }
 
             $vis fn borrow_value<T, U>(&self) -> &U
@@ -104,8 +104,8 @@ mod tests {
     fn test_u8() {
         let u8_ptr = TestEnum::U8(42);
 
-        assert!(u8_ptr.is(tags::U8));
-        assert!(!u8_ptr.is(tags::StringPtr));
+        assert!(u8_ptr.is::<{ tags::U8 }>());
+        assert!(!u8_ptr.is::<{ tags::StringPtr }>());
 
         assert_eq!(format!("{:?}", u8_ptr), "U8(42)");
 
@@ -121,8 +121,8 @@ mod tests {
     fn test_string_ptr() {
         let string_ptr = TestEnum::StringPtr(Box::new(String::from("foo")));
 
-        assert!(!string_ptr.is(tags::U8));
-        assert!(string_ptr.is(tags::StringPtr));
+        assert!(!string_ptr.is::<{ tags::U8 }>());
+        assert!(string_ptr.is::<{ tags::StringPtr }>());
 
         assert_eq!(format!("{:?}", string_ptr), "StringPtr(\"foo\")");
 

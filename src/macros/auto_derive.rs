@@ -56,7 +56,7 @@ macro_rules! __derive_macro {
                 }
                 $(
                     if tag == tags::$name {
-                        return Self { pointer: self.pointer.clone_as::<$t>() };
+                        return Self { pointer: self.pointer.clone_as::<$t, { tags::$name }>() };
                     }
                 )*
                 panic!("Unknown tag {}", tag)

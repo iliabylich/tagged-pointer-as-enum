@@ -36,35 +36,35 @@ mod test {
 
     #[test]
     fn test_bool() {
-        let ptr_true = TaggedPointer::<TEST_BITS>::new::<bool>(true, BOOL_TAG);
+        let ptr_true = TaggedPointer::<TEST_BITS>::new::<bool, BOOL_TAG>(true);
         assert_eq!(ptr_true.tag(), BOOL_TAG);
-        assert!(ptr_true.is(BOOL_TAG));
-        assert!(!ptr_true.is(U8_TAG));
+        assert!(ptr_true.is::<BOOL_TAG>());
+        assert!(!ptr_true.is::<U8_TAG>());
         assert_eq!(ptr_true.unwrap::<bool>(), true);
 
-        let ptr_false = TaggedPointer::<TEST_BITS>::new::<bool>(false, BOOL_TAG);
+        let ptr_false = TaggedPointer::<TEST_BITS>::new::<bool, BOOL_TAG>(false);
         assert_eq!(ptr_false.tag(), BOOL_TAG);
-        assert!(ptr_false.is(BOOL_TAG));
-        assert!(!ptr_false.is(U8_TAG));
+        assert!(ptr_false.is::<BOOL_TAG>());
+        assert!(!ptr_false.is::<U8_TAG>());
         assert_eq!(ptr_false.unwrap::<bool>(), false);
     }
 
     #[test]
     fn test_u8() {
-        let ptr42 = TaggedPointer::<TEST_BITS>::new::<u8>(42, U8_TAG);
+        let ptr42 = TaggedPointer::<TEST_BITS>::new::<u8, U8_TAG>(42);
         assert_eq!(ptr42.tag(), U8_TAG);
-        assert!(ptr42.is(U8_TAG));
-        assert!(!ptr42.is(BOOL_TAG));
+        assert!(ptr42.is::<U8_TAG>());
+        assert!(!ptr42.is::<BOOL_TAG>());
         assert_eq!(ptr42.unwrap::<u8>(), 42);
     }
 
     #[test]
     fn test_box() {
         let ptr = Box::new(String::from("foo"));
-        let ptr_s = TaggedPointer::<TEST_BITS>::new::<Box<String>>(ptr, BOX_STRING_TAG);
+        let ptr_s = TaggedPointer::<TEST_BITS>::new::<Box<String>, BOX_STRING_TAG>(ptr);
         assert_eq!(ptr_s.tag(), BOX_STRING_TAG);
-        assert!(ptr_s.is(BOX_STRING_TAG));
-        assert!(!ptr_s.is(BOOL_TAG));
+        assert!(ptr_s.is::<BOX_STRING_TAG>());
+        assert!(!ptr_s.is::<BOOL_TAG>());
         assert_eq!(
             ptr_s.borrow_value::<Box<String>, String>(),
             &String::from("foo")
@@ -76,10 +76,10 @@ mod test {
     fn test_option_box() {
         let some_ptr = Some(Box::new(String::from("foo")));
         let ptr_s =
-            TaggedPointer::<TEST_BITS>::new::<Option<Box<String>>>(some_ptr, OPTION_BOX_STRING_TAG);
+            TaggedPointer::<TEST_BITS>::new::<Option<Box<String>>, OPTION_BOX_STRING_TAG>(some_ptr);
         assert_eq!(ptr_s.tag(), OPTION_BOX_STRING_TAG);
-        assert!(ptr_s.is(OPTION_BOX_STRING_TAG));
-        assert!(!ptr_s.is(BOOL_TAG));
+        assert!(ptr_s.is::<OPTION_BOX_STRING_TAG>());
+        assert!(!ptr_s.is::<BOOL_TAG>());
         assert_eq!(
             ptr_s.unwrap::<Option<Box<String>>>(),
             Some(Box::new(String::from("foo")))
@@ -88,16 +88,15 @@ mod test {
 
     #[test]
     fn test_drop() {
-        let mut ptr = TaggedPointer::<TEST_BITS>::new::<bool>(true, BOOL_TAG);
+        let mut ptr = TaggedPointer::<TEST_BITS>::new::<bool, BOOL_TAG>(true);
         ptr.drop_as::<bool>();
 
-        let mut ptr = TaggedPointer::<TEST_BITS>::new::<u8>(42, U8_TAG);
+        let mut ptr = TaggedPointer::<TEST_BITS>::new::<u8, U8_TAG>(42);
         ptr.drop_as::<u8>();
 
-        let mut ptr = TaggedPointer::<TEST_BITS>::new::<Box<String>>(
-            Box::new(String::from("foo")),
-            BOX_STRING_TAG,
-        );
+        let mut ptr = TaggedPointer::<TEST_BITS>::new::<Box<String>, BOX_STRING_TAG>(Box::new(
+            String::from("foo"),
+        ));
         ptr.drop_as::<Box<String>>();
     }
 }
