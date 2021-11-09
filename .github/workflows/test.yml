@@ -1,0 +1,42 @@
+name: test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: ${{ matrix.build.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          - name: test on stable
+            rust: stable
+            run: cargo test
+          - name: test on beta
+            rust: beta
+            run: cargo test
+          - name: test on nightly with ASAN
+            rust: nightly
+            run: ASAN_OPTIONS=detect_leaks=1 RUSTFLAGS="-Z sanitizer=address" cargo test
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.build.rust }}
+          override: true
+
+      - name: ${{ matrix.build.name }}
+        run: ${{ matrix.build.run }}
