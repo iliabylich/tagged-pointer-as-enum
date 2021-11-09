@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 #[cfg(not(target_pointer_width = "64"))]
 compile_error!("Pointer size must be 64 bits");
 
