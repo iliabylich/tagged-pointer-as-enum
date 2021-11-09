@@ -1,14 +1,14 @@
 macro_rules! __declare_tags {
-    ( start = $n:expr; ) => {};
-    ( start = $n:expr; $x:ident $(, $name:ident)* ) => {
+    ( start = $n:expr; $vis:vis ) => {};
+    ( start = $n:expr; $vis:vis $x:ident $(, $name:ident)* ) => {
         pub(crate) const $x: usize = $n;
-        __declare_tags!(start = $n + 1; $($name),* );
+        __declare_tags!(start = $n + 1; $vis $($name),* );
     };
 }
 
 #[test]
 fn test_declare_tags() {
-    __declare_tags!(start = 42; A, B, C);
+    __declare_tags!(start = 42; pub A, B, C);
     assert_eq!(A, 42);
     assert_eq!(B, 43);
     assert_eq!(C, 44);
@@ -17,41 +17,41 @@ fn test_declare_tags() {
 #[macro_export]
 macro_rules! tagged_enum {
     (
-        enum $enum:ident {
+        $vis:vis enum $enum:ident {
             bits = $bits:literal;
             $($name:ident($t:ty),)+
         }
     ) => {
         #[repr(transparent)]
-        pub struct $enum {
+        $vis struct $enum {
             pointer: $crate::TaggedPointer<$bits>,
         }
 
         #[allow(non_upper_case_globals)]
-        mod tags {
-            __declare_tags!(start = 1; $($name),+);
+        $vis mod tags {
+            __declare_tags!(start = 1; $vis $($name),+);
         }
 
         impl $enum {
             // constructors
             $(
                 #[allow(non_snake_case)]
-                pub(crate) fn $name(value: $t) -> Self {
+                $vis fn $name(value: $t) -> Self {
                     Self {
                         pointer: $crate::TaggedPointer::new(value, tags::$name),
                     }
                 }
             )+
 
-            pub(crate) fn tag(&self) -> usize {
+            $vis fn tag(&self) -> usize {
                 self.pointer.tag()
             }
 
-            pub(crate) fn is(&self, tag: usize) -> bool {
+            $vis fn is(&self, tag: usize) -> bool {
                 self.tag() == tag
             }
 
-            pub(crate) fn unwrap<U>(self) -> U
+            $vis fn unwrap<U>(self) -> U
             where
                 U: $crate::TaggedPointerValue,
             {
@@ -66,7 +66,7 @@ mod tests {
     type StringPtr = Box<String>;
 
     tagged_enum! {
-        enum TestEnum {
+        pub(crate) enum TestEnum {
             bits = 8;
 
             U8(u8),
