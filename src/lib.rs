@@ -8,15 +8,19 @@ mod tagged_pointer_value;
 pub use tagged_pointer_value::TaggedPointerValue;
 
 #[macro_use]
-mod tagged_enum_macro;
+mod macros;
 
 impl TaggedPointerValue for bool {}
 
 impl TaggedPointerValue for u8 {}
 impl TaggedPointerValue for u16 {}
 impl TaggedPointerValue for u32 {}
+impl TaggedPointerValue for i8 {}
+impl TaggedPointerValue for i16 {}
+impl TaggedPointerValue for i32 {}
 
 impl<T> TaggedPointerValue for Box<T> {}
+impl<T> TaggedPointerValue for Option<Box<T>> {}
 
 #[cfg(test)]
 mod test {
@@ -26,23 +30,20 @@ mod test {
     const BOOL_TAG: usize = 1;
     const U8_TAG: usize = 2;
     const BOX_STRING_TAG: usize = 3;
+    const OPTION_BOX_STRING_TAG: usize = 4;
 
     #[test]
     fn test_bool() {
         let ptr_true = TaggedPointer::<TEST_BITS>::new::<bool>(true, BOOL_TAG);
         assert_eq!(ptr_true.tag(), BOOL_TAG);
-        assert_eq!(ptr_true.without_tag(), 1);
         assert!(ptr_true.is(BOOL_TAG));
         assert!(!ptr_true.is(U8_TAG));
-        assert!(!ptr_true.is(BOX_STRING_TAG));
         assert_eq!(ptr_true.unwrap::<bool>(), true);
 
         let ptr_false = TaggedPointer::<TEST_BITS>::new::<bool>(false, BOOL_TAG);
         assert_eq!(ptr_false.tag(), BOOL_TAG);
-        assert_eq!(ptr_false.without_tag(), 0);
         assert!(ptr_false.is(BOOL_TAG));
         assert!(!ptr_false.is(U8_TAG));
-        assert!(!ptr_false.is(BOX_STRING_TAG));
         assert_eq!(ptr_false.unwrap::<bool>(), false);
     }
 
@@ -50,28 +51,37 @@ mod test {
     fn test_u8() {
         let ptr42 = TaggedPointer::<TEST_BITS>::new::<u8>(42, U8_TAG);
         assert_eq!(ptr42.tag(), U8_TAG);
-        assert_eq!(ptr42.without_tag(), 42);
         assert!(ptr42.is(U8_TAG));
         assert!(!ptr42.is(BOOL_TAG));
-        assert!(!ptr42.is(BOX_STRING_TAG));
         assert_eq!(ptr42.unwrap::<u8>(), 42);
     }
 
     #[test]
     fn test_box() {
         let ptr = Box::new(String::from("foo"));
-        let ptr_as_usize: usize = unsafe { std::mem::transmute_copy(&ptr) };
         let ptr_s = TaggedPointer::<TEST_BITS>::new::<Box<String>>(ptr, BOX_STRING_TAG);
         assert_eq!(ptr_s.tag(), BOX_STRING_TAG);
-        assert_eq!(ptr_s.without_tag(), ptr_as_usize);
         assert!(ptr_s.is(BOX_STRING_TAG));
         assert!(!ptr_s.is(BOOL_TAG));
-        assert!(!ptr_s.is(U8_TAG));
         assert_eq!(
             ptr_s.borrow_value::<Box<String>, String>(),
             &String::from("foo")
         );
         assert_eq!(ptr_s.unwrap::<Box<String>>(), Box::new(String::from("foo")));
+    }
+
+    #[test]
+    fn test_option_box() {
+        let some_ptr = Some(Box::new(String::from("foo")));
+        let ptr_s =
+            TaggedPointer::<TEST_BITS>::new::<Option<Box<String>>>(some_ptr, OPTION_BOX_STRING_TAG);
+        assert_eq!(ptr_s.tag(), OPTION_BOX_STRING_TAG);
+        assert!(ptr_s.is(OPTION_BOX_STRING_TAG));
+        assert!(!ptr_s.is(BOOL_TAG));
+        assert_eq!(
+            ptr_s.unwrap::<Option<Box<String>>>(),
+            Some(Box::new(String::from("foo")))
+        );
     }
 
     #[test]

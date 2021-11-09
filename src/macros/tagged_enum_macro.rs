@@ -1,19 +1,3 @@
-macro_rules! __declare_tags {
-    ( start = $n:expr; $vis:vis ) => {};
-    ( start = $n:expr; $vis:vis $x:ident $(, $name:ident)* ) => {
-        pub(crate) const $x: usize = $n;
-        __declare_tags!(start = $n + 1; $vis $($name),* );
-    };
-}
-
-#[test]
-fn test_declare_tags() {
-    __declare_tags!(start = 42; pub A, B, C);
-    assert_eq!(A, 42);
-    assert_eq!(B, 43);
-    assert_eq!(C, 44);
-}
-
 #[macro_export]
 macro_rules! tagged_enum {
     (
@@ -29,7 +13,7 @@ macro_rules! tagged_enum {
 
         #[allow(non_upper_case_globals)]
         $vis mod tags {
-            __declare_tags!(start = 1; $vis $($name),+);
+            $crate::__declare_tags!(start = 1; $vis $($name),+);
         }
 
         impl $enum {
@@ -51,14 +35,41 @@ macro_rules! tagged_enum {
                 self.tag() == tag
             }
 
-            $vis fn unwrap<U>(self) -> U
+            $vis fn borrow_value<T, U>(&self) -> &U
+            where
+                T: $crate::TaggedPointerValue + std::borrow::Borrow<U>,
+            {
+                self.pointer.borrow_value::<T, U>()
+            }
+
+            $vis fn unwrap<U>(mut self) -> U
             where
                 U: $crate::TaggedPointerValue,
             {
-                self.pointer.unwrap::<U>()
+                self.pointer.take().unwrap::<U>()
             }
         }
+
+        $crate::__derive_macro!($enum; Drop; $($name : $t ),+ );
     };
+
+    // version with extra derives
+    (
+        #[derive( $($d:ident),* )]
+        $vis:vis enum $enum:ident {
+            bits = $bits:literal;
+            $($name:ident($t:ty),)+
+        }
+    ) => {
+        $crate::tagged_enum! {
+            $vis enum $enum {
+                bits = $bits;
+                $($name($t),)+
+            }
+        }
+
+        $crate::__derive_macros!($enum; $($d,)* ; $($name : $t),+ );
+    }
 }
 
 #[cfg(test)]
@@ -66,6 +77,7 @@ mod tests {
     type StringPtr = Box<String>;
 
     tagged_enum! {
+        #[derive(Debug, Clone, PartialEq, Eq)]
         pub(crate) enum TestEnum {
             bits = 8;
 
@@ -91,19 +103,35 @@ mod tests {
     #[test]
     fn test_u8() {
         let u8_ptr = TestEnum::U8(42);
+
         assert!(u8_ptr.is(tags::U8));
         assert!(!u8_ptr.is(tags::StringPtr));
-        assert_eq!(u8_ptr.unwrap::<u8>(), 42);
+
+        assert_eq!(format!("{:?}", u8_ptr), "U8(42)");
+
+        let clone = u8_ptr.clone();
+        assert_eq!(clone.unwrap::<u8>(), 42);
+
+        assert_eq!(u8_ptr, u8_ptr.clone());
+        assert_eq!(u8_ptr, TestEnum::U8(42));
+        assert_ne!(u8_ptr, TestEnum::U8(43));
     }
 
     #[test]
     fn test_string_ptr() {
         let string_ptr = TestEnum::StringPtr(Box::new(String::from("foo")));
+
         assert!(!string_ptr.is(tags::U8));
         assert!(string_ptr.is(tags::StringPtr));
+
+        assert_eq!(format!("{:?}", string_ptr), "StringPtr(\"foo\")");
+
         assert_eq!(
-            string_ptr.unwrap::<StringPtr>().as_ref(),
+            string_ptr.borrow_value::<StringPtr, String>(),
             &String::from("foo")
         );
+
+        let clone = string_ptr.clone();
+        assert_eq!(clone.unwrap::<StringPtr>().as_ref(), &String::from("foo"));
     }
 }
