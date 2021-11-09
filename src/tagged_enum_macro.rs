@@ -1,10 +1,25 @@
+macro_rules! __declare_tags {
+    ( start = $n:expr; ) => {};
+    ( start = $n:expr; $x:ident $(, $name:ident)* ) => {
+        pub(crate) const $x: usize = $n;
+        __declare_tags!(start = $n + 1; $($name),* );
+    };
+}
+
+#[test]
+fn test_declare_tags() {
+    __declare_tags!(start = 42; A, B, C);
+    assert_eq!(A, 42);
+    assert_eq!(B, 43);
+    assert_eq!(C, 44);
+}
+
 #[macro_export]
 macro_rules! tagged_enum {
     (
         enum $enum:ident {
-            $name1:ident($t1:ty),
-            $name2:ident($t2:ty),
-            bits = $bits:literal
+            bits = $bits:literal;
+            $($name:ident($t:ty),)+
         }
     ) => {
         #[repr(transparent)]
@@ -14,27 +29,26 @@ macro_rules! tagged_enum {
 
         #[allow(non_upper_case_globals)]
         mod tags {
-            pub(crate) const $name1: usize = 1;
-            pub(crate) const $name2: usize = 2;
+            __declare_tags!(start = 1; $($name),+);
         }
 
         impl $enum {
-            #[allow(non_snake_case)]
-            pub(crate) fn $name1(value: $t1) -> Self {
-                Self {
-                    pointer: $crate::TaggedPointer::new(value, tags::$name1),
+            // constructors
+            $(
+                #[allow(non_snake_case)]
+                pub(crate) fn $name(value: $t) -> Self {
+                    Self {
+                        pointer: $crate::TaggedPointer::new(value, tags::$name),
+                    }
                 }
-            }
+            )+
 
-            #[allow(non_snake_case)]
-            pub(crate) fn $name2(value: $t2) -> Self {
-                Self {
-                    pointer: $crate::TaggedPointer::new(value, tags::$name2),
-                }
+            pub(crate) fn tag(&self) -> usize {
+                self.pointer.tag()
             }
 
             pub(crate) fn is(&self, tag: usize) -> bool {
-                self.pointer.tag() == tag
+                self.tag() == tag
             }
 
             pub(crate) fn unwrap<U>(self) -> U
@@ -53,9 +67,10 @@ mod tests {
 
     tagged_enum! {
         enum TestEnum {
+            bits = 8;
+
             U8(u8),
-            StringPtr(Box<String>),
-            bits = 8
+            StringPtr(StringPtr),
         }
     }
 
@@ -68,6 +83,12 @@ mod tests {
     }
 
     #[test]
+    fn test_tags() {
+        assert_eq!(tags::U8, 1);
+        assert_eq!(tags::StringPtr, 2);
+    }
+
+    #[test]
     fn test_u8() {
         let u8_ptr = TestEnum::U8(42);
         assert!(u8_ptr.is(tags::U8));
@@ -77,9 +98,12 @@ mod tests {
 
     #[test]
     fn test_string_ptr() {
-        let u16_ptr = TestEnum::StringPtr(Box::new(String::from("foo")));
-        assert!(!u16_ptr.is(tags::U8));
-        assert!(u16_ptr.is(tags::StringPtr));
-        assert_eq!(u16_ptr.unwrap::<StringPtr>().as_ref(), &String::from("foo"));
+        let string_ptr = TestEnum::StringPtr(Box::new(String::from("foo")));
+        assert!(!string_ptr.is(tags::U8));
+        assert!(string_ptr.is(tags::StringPtr));
+        assert_eq!(
+            string_ptr.unwrap::<StringPtr>().as_ref(),
+            &String::from("foo")
+        );
     }
 }
