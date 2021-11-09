@@ -7,25 +7,25 @@ pub struct TaggedPointer<const BITS: u8> {
 impl<const BITS: u8> TaggedPointer<BITS> {
     const VALUE_BITS: u8 = 64 - BITS;
 
-    fn new_from_usize<T, const MASK: usize>(value: usize) -> Self
+    fn new_from_usize<T>(value: usize, mask: usize) -> Self
     where
         T: TaggedPointerValue,
     {
-        debug_assert!(MASK < (1_usize << BITS));
-        let tag_mask = MASK << Self::VALUE_BITS;
+        debug_assert!(mask < (1_usize << BITS));
+        let tag_mask = mask << Self::VALUE_BITS;
         let ptr = value | tag_mask;
         Self { ptr }
     }
 
-    pub fn new<T, const MASK: usize>(value: T) -> Self
+    pub fn new<T>(value: T, mask: usize) -> Self
     where
         T: TaggedPointerValue,
     {
-        Self::new_from_usize::<T, MASK>(T::as_untagged_ptr(value))
+        Self::new_from_usize::<T>(T::as_untagged_ptr(value), mask)
     }
 
-    pub fn is<const MASK: usize>(&self) -> bool {
-        self.tag() == MASK
+    pub fn is(&self, mask: usize) -> bool {
+        self.tag() == mask
     }
 
     pub fn unwrap<T>(mut self) -> T
