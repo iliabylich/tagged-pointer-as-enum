@@ -1,7 +1,10 @@
 [package]
+description = "A set of structs, traits and macros to implement tagged pointers."
 edition = "2021"
+license = "MIT"
 name = "tagged-pointer-as-enum"
-version = "0.1.0"
+repository = "https://github.com/iliabylich/tagged-pointer-as-enum"
+version = "1.0.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
